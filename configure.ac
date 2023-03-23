@@ -10,7 +10,6 @@ AC_CONFIG_FILES([ \
     include/mk/features.mk \
     lib/ltp.pc \
     m4/Makefile \
-    execltp \
 ])
 
 AC_ARG_VAR(HOSTCC, [The C compiler on the host])
@@ -225,10 +224,10 @@ AC_CHECK_TYPES([struct __kernel_old_timeval, struct __kernel_old_timespec, struc
 
 AC_CHECK_TYPES([struct futex_waitv],,,[#include <linux/futex.h>])
 AC_CHECK_TYPES([struct mount_attr],,,[
-#ifdef HAVE_LINUX_MOUNT_H
-# include <linux/mount.h>
-#else
+#ifdef HAVE_MOUNT_SETATTR
 # include <sys/mount.h>
+#elif HAVE_LINUX_MOUNT_H
+# include <linux/mount.h>
 #endif
 ])
 

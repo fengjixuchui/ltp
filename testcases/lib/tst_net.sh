@@ -84,25 +84,82 @@ tst_brk_()
 	[ -z "$TST_USE_LEGACY_API" ] && tst_brk $@ || tst_brkm $@
 }
 
+# Detect IPv6 disabled via 1) CONFIG_IPV6=n or 2) ipv6.disable=1 kernel cmdline
+# parameter or 3) sysctl net.ipv6.conf.all.disable_ipv6=1 (disables IPv6 on all
+# interfaces (including both already created and later created).
+# $TST_NET_IPV6_ENABLED: 1 on IPv6 enabled, 0 on IPv6 disabled.
 tst_net_detect_ipv6()
 {
 	local type="${1:-lhost}"
 	local cmd='[ -f /proc/net/if_inet6 ]'
-	local ret
+	local disabled iface ret
 
 	if [ "$type" = "lhost" ]; then
 		$cmd
 	else
 		tst_rhost_run -c "$cmd"
 	fi
-	ret=$?
 
-	if [ $ret -eq 0 ]; then
-		TST_NET_IPV6_ENABLED=1
-	else
+	if [ $? -ne 0 ]; then
 		TST_NET_IPV6_ENABLED=0
-		tst_res_ TINFO "IPv6 disabled on $type"
+		tst_res_ TINFO "IPv6 disabled on $type via kernel command line or not compiled in"
+		return
 	fi
+
+	cmd='cat /proc/sys/net/ipv6/conf/all/disable_ipv6'
+	if [ "$type" = "lhost" ]; then
+		disabled=$($cmd)
+	else
+		disabled=$(tst_rhost_run -c "$cmd")
+	fi
+	if [ $disabled = 1 ]; then
+		tst_res_ TINFO "IPv6 disabled on $type net.ipv6.conf.all.disable_ipv6=1"
+		TST_NET_IPV6_ENABLED=0
+		return
+	fi
+
+	TST_NET_IPV6_ENABLED=1
+}
+
+# Detect IPv6 disabled on interface via sysctl
+# net.ipv6.conf.$iface.disable_ipv6=1.
+# $TST_NET_IPV6_ENABLED: 1 on IPv6 enabled, 0 on IPv6 disabled.
+# return: 0 on IPv6 enabled, 1 on IPv6 disabled.
+tst_net_detect_ipv6_iface()
+{
+	[ "$TST_NET_IPV6_ENABLED" = 1 ] || return 1
+
+	local iface="$1"
+	local type="${2:-lhost}"
+	local check="cat /proc/sys/net/ipv6/conf/$iface/disable_ipv6"
+	local disabled
+
+	if [ "$type" = "lhost" ]; then
+		disabled=$($check)
+	else
+		disabled=$(tst_rhost_run -c "$check")
+	fi
+	if [ $disabled = 1 ]; then
+		tst_res_ TINFO "IPv6 disabled on $type on $iface"
+		TST_NET_IPV6_ENABLED=0
+		return 1
+	fi
+
+	return 0
+}
+
+# Detect IPv6 disabled on used interfaces.
+tst_net_check_ifaces_ipv6()
+{
+	local iface
+
+	for iface in $(tst_get_ifaces); do
+		tst_net_detect_ipv6_iface $iface || return
+	done
+
+	for iface in $(tst_get_ifaces rhost); do
+		tst_net_detect_ipv6_iface $iface rhost || return
+	done
 }
 
 tst_net_require_ipv6()
@@ -515,7 +572,9 @@ tst_init_iface()
 	local type="${1:-lhost}"
 	local link_num="${2:-0}"
 	local iface="$(tst_iface $type $link_num)"
+
 	tst_res_ TINFO "initialize '$type' '$iface' interface"
+	tst_net_detect_ipv6_iface $iface $type
 
 	if [ "$type" = "lhost" ]; then
 		if ip xfrm state 1>/dev/null 2>&1; then
@@ -574,6 +633,8 @@ tst_add_ipaddr()
 	local type="${1:-lhost}"
 	local link_num="${2:-0}"
 	local iface=$(tst_iface $type $link_num)
+
+	tst_net_detect_ipv6_iface $iface $type
 
 	if [ "$TST_IPV6" ]; then
 		dad="nodad"
@@ -989,6 +1050,7 @@ tst_net_setup_network()
 		$IPV4_RHOST/$IPV4_RPREFIX || echo "exit $?")
 
 	if [ "$TST_NET_IPV6_ENABLED" = 1 ]; then
+		tst_net_check_ifaces_ipv6
 		eval $(tst_net_iface_prefix $IPV6_LHOST || echo "exit $?")
 		eval $(tst_rhost_run -c 'tst_net_iface_prefix -r '$IPV6_RHOST \
 			|| echo "exit $?")
