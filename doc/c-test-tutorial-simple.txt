@@ -222,7 +222,7 @@ $ ./statx01
 This should build the test and then run it. However, even though the test is
 in the +syscalls+ directory it won't be automatically ran as part of the
 _syscalls_ test group (remember +./runltp -f syscalls+ from the +README.md+?). For
-this we need to add it to the +runtest+ file. So open +runtest/statx+ and add
+this we need to add it to the +runtest+ file. So open +runtest/syscalls+ and add
 the lines starting with a +++.
 
 [source,diff]
@@ -940,7 +940,7 @@ the 'index' where you are then able to un-stage some parts before
 re-committing.
 
 You can also use +edit+ and +git commit --amend+ together to change a commit
-deep in your history, but without reseting the 'index'. The 'index' contains
+deep in your history, but without resetting the 'index'. The 'index' contains
 changes which you have staged with +git add+, but not yet committed.
 
 So now that the commit history has been cleaned up, we need to submit a patch

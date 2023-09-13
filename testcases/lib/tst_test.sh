@@ -528,7 +528,7 @@ _tst_cleanup_timer()
 {
 	if [ -n "$_tst_setup_timer_pid" ]; then
 		kill -TERM $_tst_setup_timer_pid 2>/dev/null
-		# kill is succesful only on test timeout
+		# kill is successful only on test timeout
 		wait $_tst_setup_timer_pid 2>/dev/null || true
 	fi
 }
@@ -722,6 +722,8 @@ tst_run()
 		fi
 
 		TST_TMPDIR=$(mktemp -d "$TMPDIR/LTP_$TST_ID.XXXXXXXXXX")
+		# remove possible trailing slash or double slashes from TMPDIR
+		TST_TMPDIR=$(echo "$TST_TMPDIR" | sed 's~/\+~/~g')
 
 		chmod 777 "$TST_TMPDIR"
 

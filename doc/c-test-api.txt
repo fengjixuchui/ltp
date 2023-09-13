@@ -20,7 +20,7 @@ Let's start with an example, following code is a simple test for a 'getenv()'.
  * [Description]
  * Tests basic functionality of getenv().
  *
- *  - create an env variable and verify that getenv() can get get it
+ *  - create an env variable and verify that getenv() can get it
  *  - call getenv() with nonexisting variable name, check that it returns NULL
  */
 
@@ -36,7 +36,7 @@ static void setup(void)
 		tst_brk(TBROK | TERRNO, "setenv() failed");
 }
 
-static void test(void)
+static void run(void)
 {
 	char *ret;
 
@@ -64,7 +64,7 @@ next:
 }
 
 static struct tst_test test = {
-	.test_all = test,
+	.test_all = run,
 	.setup = setup,
 };
 -------------------------------------------------------------------------------
@@ -102,7 +102,7 @@ that should cover the duration of test setup and cleanup plus some safety.
 Any test that runs for more than a second or two has to make sure to:
 
 - set the runtime either by setting the '.max_runtime' in tst_test or by
-  calling 'tst_set_runtime()' in the test setup
+  calling 'tst_set_max_runtime()' in the test setup
 
 - monitor remaning runtime by regular calls to 'tst_remaining_runtime()' and
   exit when runtime has been used up
@@ -257,7 +257,7 @@ value and errno and reports the test result.
 
 [source,c]
 -------------------------------------------------------------------------------
-static void test(void)
+static void run(void)
 {
 	...
 	TST_EXP_PASS(stat(fname, &statbuf), "stat(%s, ...)", fname);
@@ -278,7 +278,7 @@ begin with a format string and then appropriate values to be formatted.
 
 [source,c]
 -------------------------------------------------------------------------------
-static void test(void)
+static void run(void)
 {
 	...
 	TST_EXP_FD(open(fname, O_RDONLY), "open(%s, O_RDONLY)", fname);
@@ -294,7 +294,7 @@ positive integer is returned.
 
 [source,c]
 -------------------------------------------------------------------------------
-static void test(void)
+static void run(void)
 {
 	...
 	TST_EXP_FAIL(stat(fname, &statbuf), ENOENT, "stat(%s, ...)", fname);
@@ -308,7 +308,7 @@ passed as the second argument.
 
 [source,c]
 -------------------------------------------------------------------------------
-static void test(void)
+static void run(void)
 {
 	...
 	TST_EXP_FAIL2(msgget(key, flags), EINVAL, "msgget(%i, %i)", key, flags);
@@ -402,7 +402,7 @@ WARNING: This function is not thread safe.
 void tst_set_max_runtime(int max_runtime);
 -------------------------------------------------------------------------------
 
-Allows for setting max_runtime per test iteration dynamically in the test setup(),
+Allows for setting max_runtime per test iteration dynamically in the test 'setup()',
 the timeout is specified in seconds. There are a few testcases whose runtime
 can vary arbitrarily, these can disable timeouts by setting it to
 TST_UNLIMITED_RUNTIME.
@@ -459,7 +459,7 @@ You write just:
 fd = SAFE_OPEN("/dev/null", O_RDONLY);
 -------------------------------------------------------------------------------
 
-IMPORTANT: The SAFE_CLOSE() function also sets the passed file descriptor to -1
+IMPORTANT: The 'SAFE_CLOSE()' function also sets the passed file descriptor to -1
            after it's successfully closed.
 
 They can also simplify reading and writing of sysfs files, you can, for
@@ -579,7 +579,7 @@ These two functions are intended for runtime kernel version detection. They
 parse the output from 'uname()' and compare it to the passed values.
 
 The return value is similar to the 'strcmp()' function, i.e. zero means equal,
-negative value means that the kernel is older than than the expected value and
+negative value means that the kernel is older than the expected value and
 positive means that it's newer.
 
 The second function 'tst_kvercmp2()' allows for specifying per-vendor table of
@@ -712,7 +712,7 @@ int main(void)
 The 'tst_res()' function can be also used from binaries started by 'exec()',
 the parent test process has to set the '.child_needs_reinit' flag so that the
 library prepares for it and has to make sure the 'LTP_IPC_PATH' environment
-variable is passed down, then the very fist thing the program has to call in
+variable is passed down, then the very first thing the program has to call in
 'main()' is 'tst_reinit()' that sets up the IPC.
 
 1.9 Fork() and Parent-child synchronization
@@ -831,7 +831,7 @@ type defined in C99 but this one *DOES NOT* imply 'volatile' (it's just a
 signal handler is either 'volatile int' or 'volatile sig_atomic_t'.
 
 If a crash (e.g. triggered by signal SIGSEGV) is expected in testing, you
-can avoid creation of core files by calling tst_no_corefile() function.
+can avoid creation of core files by calling 'tst_no_corefile()' function.
 This takes effect for process (and its children) which invoked it, unless
 they subsequently modify RLIMIT_CORE.
 
@@ -1606,8 +1606,8 @@ as a module. If '.needs_drivers' points to a 'NULL' terminated array of kernel
 module names these are all checked and the test exits with 'TCONF' on the
 first missing driver.
 
-Since it relies on modprobe command, the check will be skipped if the command
-itself is not available on the system.
+The detection is based on reading 'modules.dep' and 'modules.builtin' files
+generated by kmod. The check is skipped on Android.
 
 1.27 Saving & restoring /proc|sys values
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -1949,7 +1949,7 @@ available to the children (see the capabilities (7) manual pages).
 
 However a lot of problems can be solved by using 'tst_cap_action(struct
 tst_cap  *cap)' directly which can be called at any time. This also helps if
-you wish to drop a capability at the begining of setup.
+you wish to drop a capability at the beginning of setup.
 
 1.33 Reproducing race-conditions
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -2141,7 +2141,7 @@ the prefix field of file pointed by path equals to the value passed to this func
 Also having a similar api pair TST_ASSERT_FILE_INT/STR(path, prefix, val) to assert
 the field value of file.
 
-1.36 Using Control Group
+1.37 Using Control Group
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 Some LTP tests need specific Control Group configurations.  'tst_cgroup.h'
@@ -2322,13 +2322,24 @@ kernel docs. Presently the LTP library does not attempt to handle most
 differences in semantics. It does the minimal amount of work to make testing on
 both V1 and V2 feasible.
 
-1.37 Require minimum numbers of CPU for a testcase
+1.38 Require minimum numbers of CPU for a testcase
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 Some tests require more than specific number of CPU. It can be defined with
 `.min_cpus = N`.
 
-1.38 Test tags
+1.39 Require minimum memory or swap size for a testcase
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Some tests require at least size(MB) of free RAM or Swap.
+
+To make sure that test will run only on systems with more than minimal
+required amount of RAM set `.min_mem_avail = N`.
+
+Similarily for tests that require certain amount of free Swap use
+`.min_swap_avail = N`.
+
+1.40 Test tags
 ~~~~~~~~~~~~~~
 
 Test tags are name-value pairs that can hold any test metadata.
@@ -2370,10 +2381,10 @@ struct tst_test test = {
 };
 -------------------------------------------------------------------------------
 
-1.39 Testing on the specific architecture
+1.41 Testing on the specific architecture
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 Testcases for specific arch should be limited on that only being supported
-platform to run, we now involve a .supported_archs to achieve this feature
+platform to run, we now involve a '.supported_archs' to achieve this feature
 in LTP library. All you need to run a test on the expected arch is to set
 the '.supported_archs' array in the 'struct tst_test' to choose the required
 arch list. e.g.
@@ -2406,11 +2417,11 @@ static struct tst_test test = {
 };
 -------------------------------------------------------------------------------
 
-1.40 Require minimum size of MemAvailable for a testcase
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-Some tests require more than specific size(MB) of MemAvailable. It can be defined
-with `.min_mem_avail = N`.
+1.42 Skipping test based on system state
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Test can be skipped on various conditions: on enabled SecureBoot
+('.skip_in_secureboot = 1'), lockdown ('.skip_in_lockdown = 1') or in 32-bit
+compat mode ('.skip_in_compat = 1').
 
 2. Common problems
 ------------------

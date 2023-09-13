@@ -34,6 +34,7 @@
 #include "old_resource.h"
 #include "old_device.h"
 #include "old_tmpdir.h"
+#include "ltp-version.h"
 
 /*
  * Hack to get TCID defined in newlib tests
@@ -94,7 +95,7 @@ static void setup_ipc(void)
 
 	if (access("/dev/shm", F_OK) == 0) {
 		snprintf(shm_path, sizeof(shm_path), "/dev/shm/ltp_%s_%d",
-		         tid, getpid());
+			 tid, getpid());
 	} else {
 		char *tmpdir;
 
@@ -103,7 +104,7 @@ static void setup_ipc(void)
 
 		tmpdir = tst_get_tmpdir();
 		snprintf(shm_path, sizeof(shm_path), "%s/ltp_%s_%d",
-		         tmpdir, tid, getpid());
+			 tmpdir, tid, getpid());
 		free(tmpdir);
 	}
 
@@ -127,7 +128,7 @@ static void setup_ipc(void)
 	SAFE_CLOSE(ipc_fd);
 
 	if (tst_test->needs_checkpoints) {
-		tst_futexes = (char*)results + sizeof(struct results);
+		tst_futexes = (char *)results + sizeof(struct results);
 		tst_max_futexes = (size - sizeof(struct results))/sizeof(futex_t);
 	}
 }
@@ -143,8 +144,8 @@ static void cleanup_ipc(void)
 		tst_res(TWARN | TERRNO, "unlink(%s) failed", shm_path);
 
 	if (results) {
-		msync((void*)results, size, MS_SYNC);
-		munmap((void*)results, size);
+		msync((void *)results, size, MS_SYNC);
+		munmap((void *)results, size);
 		results = NULL;
 	}
 }
@@ -164,7 +165,7 @@ void tst_reinit(void)
 	fd = SAFE_OPEN(path, O_RDWR);
 
 	results = SAFE_MMAP(NULL, size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-	tst_futexes = (char*)results + sizeof(struct results);
+	tst_futexes = (char *)results + sizeof(struct results);
 	tst_max_futexes = (size - sizeof(struct results))/sizeof(futex_t);
 
 	SAFE_CLOSE(fd);
@@ -195,7 +196,7 @@ static void update_results(int ttype)
 }
 
 static void print_result(const char *file, const int lineno, int ttype,
-                         const char *fmt, va_list va)
+			 const char *fmt, va_list va)
 {
 	char buf[1024];
 	char *str = buf;
@@ -286,16 +287,16 @@ static void print_result(const char *file, const int lineno, int ttype,
 	}
 }
 
-void tst_vres_(const char *file, const int lineno, int ttype,
-               const char *fmt, va_list va)
+void tst_vres_(const char *file, const int lineno, int ttype, const char *fmt,
+	       va_list va)
 {
 	print_result(file, lineno, ttype, fmt, va);
 
 	update_results(TTYPE_RESULT(ttype));
 }
 
-void tst_vbrk_(const char *file, const int lineno, int ttype,
-               const char *fmt, va_list va);
+void tst_vbrk_(const char *file, const int lineno, int ttype, const char *fmt,
+	       va_list va);
 
 static void (*tst_brk_handler)(const char *file, const int lineno, int ttype,
 			       const char *fmt, va_list va) = tst_vbrk_;
@@ -324,8 +325,8 @@ static void do_test_cleanup(void)
 	tst_brk_handler = tst_vbrk_;
 }
 
-void tst_vbrk_(const char *file, const int lineno, int ttype,
-               const char *fmt, va_list va)
+void tst_vbrk_(const char *file, const int lineno, int ttype, const char *fmt,
+	       va_list va)
 {
 	print_result(file, lineno, ttype, fmt, va);
 	update_results(TTYPE_RESULT(ttype));
@@ -336,7 +337,7 @@ void tst_vbrk_(const char *file, const int lineno, int ttype,
 	 * specified but CLONE_THREAD is not. Use direct syscall to avoid
 	 * cleanup running in the child.
 	 */
-	if (syscall(SYS_getpid) == main_pid)
+	if (tst_getpid() == main_pid)
 		do_test_cleanup();
 
 	if (getpid() == lib_pid)
@@ -346,7 +347,7 @@ void tst_vbrk_(const char *file, const int lineno, int ttype,
 }
 
 void tst_res_(const char *file, const int lineno, int ttype,
-              const char *fmt, ...)
+	      const char *fmt, ...)
 {
 	va_list va;
 
@@ -356,7 +357,7 @@ void tst_res_(const char *file, const int lineno, int ttype,
 }
 
 void tst_brk_(const char *file, const int lineno, int ttype,
-              const char *fmt, ...)
+	      const char *fmt, ...)
 {
 	va_list va;
 
@@ -379,8 +380,8 @@ static void check_child_status(pid_t pid, int status)
 	int ret;
 
 	if (WIFSIGNALED(status)) {
-		tst_brk(TBROK, "Child (%i) killed by signal %s",
-		        pid, tst_strsig(WTERMSIG(status)));
+		tst_brk(TBROK, "Child (%i) killed by signal %s", pid,
+			tst_strsig(WTERMSIG(status)));
 	}
 
 	if (!(WIFEXITED(status)))
@@ -509,6 +510,7 @@ static struct option {
 	{"h",  "-h       Prints this help"},
 	{"i:", "-i n     Execute test n times"},
 	{"I:", "-I x     Execute test for n seconds"},
+	{"V",  "-V       Prints LTP version"},
 	{"C:", "-C ARG   Run child process with ARG arguments (used internally)"},
 };
 
@@ -609,7 +611,7 @@ static void check_option_collision(void)
 		for (j = 0; j < ARRAY_SIZE(options); j++) {
 			if (toptions[i].optstr[0] == options[j].optstr[0]) {
 				tst_brk(TBROK, "Option collision '%s'",
-				        options[j].help);
+					options[j].help);
 			}
 		}
 	}
@@ -622,7 +624,8 @@ static unsigned int count_options(void)
 	if (!tst_test->options)
 		return 0;
 
-	for (i = 0; tst_test->options[i].optstr; i++);
+	for (i = 0; tst_test->options[i].optstr; i++)
+		;
 
 	return i;
 }
@@ -685,6 +688,10 @@ static void parse_opts(int argc, char *argv[])
 				tst_test->max_runtime = SAFE_STRTOL(optarg, 1, INT_MAX);
 			else
 				duration = SAFE_STRTOF(optarg, 0.1, HUGE_VALF);
+		break;
+		case 'V':
+			fprintf(stderr, "LTP version: " LTP_VERSION "\n");
+			exit(0);
 		break;
 		case 'C':
 #ifdef UCLINUX
@@ -891,13 +898,13 @@ void check_kver(void)
 
 	if (tst_parse_kver(tst_test->min_kver, &v1, &v2, &v3)) {
 		tst_res(TWARN,
-		        "Invalid kernel version %s, expected %%d.%%d.%%d",
-		        tst_test->min_kver);
+			"Invalid kernel version %s, expected %%d.%%d.%%d",
+			tst_test->min_kver);
 	}
 
 	if (tst_kvercmp(v1, v2, v3) < 0) {
 		tst_brk(TCONF, "The test requires kernel %s or newer",
-		        tst_test->min_kver);
+			tst_test->min_kver);
 	}
 }
 
@@ -980,9 +987,8 @@ static void assert_test_fn(void)
 		tst_brk(TBROK, "You can define tcnt only for test()");
 }
 
-static int prepare_and_mount_ro_fs(const char *dev,
-                                   const char *mntpoint,
-                                   const char *fs_type)
+static int prepare_and_mount_ro_fs(const char *dev, const char *mntpoint,
+				   const char *fs_type)
 {
 	char buf[PATH_MAX];
 
@@ -1078,10 +1084,10 @@ static const char *limit_tmpfs_mount_size(const char *mnt_data,
 
 static const char *get_device_name(const char *fs_type)
 {
-       if (!strcmp(fs_type, "tmpfs"))
-               return "ltp-tmpfs";
-       else
-               return tdev.dev;
+	if (!strcmp(fs_type, "tmpfs"))
+		return "ltp-tmpfs";
+	else
+		return tdev.dev;
 }
 
 static void prepare_device(void)
@@ -1096,7 +1102,7 @@ static void prepare_device(void)
 
 	if (tst_test->needs_rofs) {
 		prepare_and_mount_ro_fs(tdev.dev, tst_test->mntpoint,
-		                        tdev.fs_type);
+					tdev.fs_type);
 		return;
 	}
 
@@ -1160,6 +1166,9 @@ static void do_setup(int argc, char *argv[])
 	if (tst_test->skip_in_lockdown && tst_lockdown_enabled())
 		tst_brk(TCONF, "Kernel is locked down, skipping test");
 
+	if (tst_test->skip_in_secureboot && tst_secureboot_enabled())
+		tst_brk(TCONF, "SecureBoot enabled, skipping test");
+
 	if (tst_test->skip_in_compat && TST_ABI != tst_kernel_bits())
 		tst_brk(TCONF, "Not supported in 32-bit compat mode");
 
@@ -1194,6 +1203,9 @@ static void do_setup(int argc, char *argv[])
 
 	if (tst_test->min_mem_avail > (unsigned long)(tst_available_mem() / 1024))
 		tst_brk(TCONF, "Test needs at least %luMB MemAvailable", tst_test->min_mem_avail);
+
+	if (tst_test->min_swap_avail > (unsigned long)(tst_available_swap() / 1024))
+		tst_brk(TCONF, "Test needs at least %luMB SwapFree", tst_test->min_swap_avail);
 
 	if (tst_test->hugepages.number)
 		tst_reserve_hugepages(&tst_test->hugepages);
@@ -1240,7 +1252,7 @@ static void do_setup(int argc, char *argv[])
 		 */
 		if (prepare_and_mount_ro_fs(NULL, tst_test->mntpoint, "tmpfs")) {
 			tst_res(TINFO, "Can't mount tmpfs read-only, "
-			        "falling back to block device...");
+				"falling back to block device...");
 			tst_test->needs_device = 1;
 			tst_test->format_device = 1;
 		}
@@ -1268,12 +1280,12 @@ static void do_setup(int argc, char *argv[])
 			prepare_device();
 	}
 
-	if (tst_test->needs_overlay && !tst_test->mount_device) {
+	if (tst_test->needs_overlay && !tst_test->mount_device)
 		tst_brk(TBROK, "tst_test->mount_device must be set");
-	}
-	if (tst_test->needs_overlay && !mntpoint_mounted) {
+
+	if (tst_test->needs_overlay && !mntpoint_mounted)
 		tst_brk(TBROK, "tst_test->mntpoint must be mounted");
-	}
+
 	if (tst_test->needs_overlay && !ovl_mounted) {
 		SAFE_MOUNT_OVERLAY();
 		ovl_mounted = 1;
@@ -1316,7 +1328,7 @@ static void do_test_setup(void)
 	if (tst_test->setup)
 		tst_test->setup();
 
-	if (main_pid != getpid())
+	if (main_pid != tst_getpid())
 		tst_brk(TBROK, "Runaway child in setup()!");
 
 	if (tst_test->caps)
@@ -1379,9 +1391,8 @@ static void run_tests(void)
 		heartbeat();
 		tst_test->test_all();
 
-		if (getpid() != main_pid) {
+		if (tst_getpid() != main_pid)
 			exit(0);
-		}
 
 		tst_reap_children();
 
@@ -1395,9 +1406,8 @@ static void run_tests(void)
 		heartbeat();
 		tst_test->test(i);
 
-		if (getpid() != main_pid) {
+		if (tst_getpid() != main_pid)
 			exit(0);
-		}
 
 		tst_reap_children();
 
@@ -1670,6 +1680,8 @@ void tst_run_tcases(int argc, char *argv[], struct tst_test *self)
 
 	SAFE_SIGNAL(SIGALRM, alarm_handler);
 	SAFE_SIGNAL(SIGUSR1, heartbeat_handler);
+
+	tst_res(TINFO, "LTP version: "LTP_VERSION);
 
 	if (tst_test->max_runtime)
 		results->max_runtime = multiply_runtime(tst_test->max_runtime);

@@ -117,6 +117,7 @@ clone09 clone09
 
 clone301 clone301
 clone302 clone302
+clone303 clone303
 
 close01 close01
 close02 close02
@@ -175,6 +176,9 @@ epoll_wait01 epoll_wait01
 epoll_wait02 epoll_wait02
 epoll_wait03 epoll_wait03
 epoll_wait04 epoll_wait04
+epoll_wait05 epoll_wait05
+epoll_wait06 epoll_wait06
+epoll_wait07 epoll_wait07
 epoll_pwait01 epoll_pwait01
 epoll_pwait02 epoll_pwait02
 epoll_pwait03 epoll_pwait03
@@ -182,6 +186,11 @@ epoll_pwait04 epoll_pwait04
 epoll_pwait05 epoll_pwait05
 
 eventfd01 eventfd01
+eventfd02 eventfd02
+eventfd03 eventfd03
+eventfd04 eventfd04
+eventfd05 eventfd05
+eventfd06 eventfd06
 
 eventfd2_01 eventfd2_01
 eventfd2_02 eventfd2_02
@@ -210,6 +219,11 @@ exit_group01 exit_group01
 
 #faccessat test cases
 faccessat01 faccessat01
+faccessat02 faccessat02
+
+#faccessat2 test cases
+faccessat201 faccessat201
+faccessat202 faccessat202
 
 #fallocate test cases
 fallocate01 fallocate01
@@ -543,11 +557,11 @@ init_module01 init_module01
 init_module02 init_module02
 
 #Needs tty device.
-#ioctl01 ioctl01 -D /dev/tty0
 #ioctl02 ioctl02 -D /dev/tty0
 
 # Introducing ioctl tests for all /dev/tty* devices
-ioctl01_02   test_ioctl
+ioctl01      ioctl01
+ioctl02      test_ioctl
 ioctl03      ioctl03
 ioctl04      ioctl04
 ioctl05      ioctl05
@@ -612,6 +626,7 @@ fanotify19 fanotify19
 fanotify20 fanotify20
 fanotify21 fanotify21
 fanotify22 fanotify22
+fanotify23 fanotify23
 
 ioperm01 ioperm01
 ioperm02 ioperm02
@@ -779,7 +794,6 @@ mmap03 mmap03
 mmap04 mmap04
 mmap05 mmap05
 mmap06 mmap06
-mmap07 mmap07
 mmap08 mmap08
 mmap09 mmap09
 mmap12 mmap12
@@ -844,6 +858,7 @@ mremap02 mremap02
 mremap03 mremap03
 mremap04 mremap04
 mremap05 mremap05
+mremap06 mremap06
 
 msgctl01 msgctl01
 msgctl02 msgctl02
@@ -988,6 +1003,7 @@ pipe10 pipe10
 pipe11 pipe11
 pipe12 pipe12
 pipe13 pipe13
+pipe14 pipe14
 
 pipe2_01 pipe2_01
 pipe2_02 pipe2_02
@@ -1037,6 +1053,8 @@ process_vm_readv02 process_vm_readv02
 process_vm_readv03 process_vm_readv03
 process_vm_writev01 process_vm01
 process_vm_writev02 process_vm_writev02
+
+process_madvise01 process_madvise01
 
 prot_hsymlinks prot_hsymlinks
 dirtyc0w dirtyc0w
@@ -1323,8 +1341,6 @@ setgroups02 setgroups02
 setgroups02_16 setgroups02_16
 setgroups03 setgroups03
 setgroups03_16 setgroups03_16
-setgroups04 setgroups04
-setgroups04_16 setgroups04_16
 
 sethostname01 sethostname01
 sethostname02 sethostname02
@@ -1765,6 +1781,9 @@ statx06 statx06
 statx07 statx07
 statx08 statx08
 statx09 statx09
+statx10 statx10
+statx11 statx11
+statx12 statx12
 
 membarrier01 membarrier01
 

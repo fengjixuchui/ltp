@@ -42,6 +42,9 @@ static void setup(void)
 		used_cnt);
 	SAFE_FILE_SCANF("/proc/sys/kernel/sem", "%*d %*d %*d %d", &maxsems);
 
+	/* Prevent timeout due to high semaphore array limit */
+	tst_set_max_runtime(maxsems / 200);
+
 	sem_id_arr = SAFE_MALLOC((maxsems - used_cnt) * sizeof(int));
 	for (num = 0; num < maxsems - used_cnt; num++) {
 		res = semget(semkey + num, PSEMS, IPC_CREAT | IPC_EXCL | SEM_RA);
@@ -73,7 +76,8 @@ static struct tst_test test = {
 	.cleanup = cleanup,
 	.test_all = verify_semget,
 	.save_restore = (const struct tst_path_val[]){
-		{"/proc/sys/kernel/sem", NULL, TST_SR_TCONF},
+		{"/proc/sys/kernel/sem", NULL,
+			TST_SR_TCONF_MISSING | TST_SR_SKIP_RO},
 		{}
 	}
 };
