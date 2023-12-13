@@ -45,6 +45,7 @@ const char *TCID __attribute__((weak));
 #define LINUX_GIT_URL "https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/commit/?id="
 #define LINUX_STABLE_GIT_URL "https://git.kernel.org/pub/scm/linux/kernel/git/stable/linux.git/commit/?id="
 #define GLIBC_GIT_URL "https://sourceware.org/git/?p=glibc.git;a=commit;h="
+#define MUSL_GIT_URL "https://git.musl-libc.org/cgit/musl/commit/src/linux/clone.c?id="
 #define CVE_DB_URL "https://cve.mitre.org/cgi-bin/cvename.cgi?name=CVE-"
 
 #define DEFAULT_TIMEOUT 30
@@ -519,7 +520,7 @@ static void print_help(void)
 	unsigned int i;
 	int timeout, runtime;
 
-	/* see doc/user-guide.txt, which lists also shell API variables */
+	/* see doc/User-Guidelines.asciidoc, which lists also shell API variables */
 	fprintf(stderr, "Environment Variables\n");
 	fprintf(stderr, "---------------------\n");
 	fprintf(stderr, "KCONFIG_PATH         Specify kernel config file\n");
@@ -592,6 +593,8 @@ static void print_test_tags(void)
 			fprintf(stderr, LINUX_STABLE_GIT_URL "%s\n", tags[i].value);
 		else if (!strcmp(tags[i].name, "glibc-git"))
 			fprintf(stderr, GLIBC_GIT_URL "%s\n", tags[i].value);
+		else if (!strcmp(tags[i].name, "musl-git"))
+			fprintf(stderr, MUSL_GIT_URL "%s\n", tags[i].value);
 		else
 			fprintf(stderr, "%s: %s\n", tags[i].name, tags[i].value);
 	}
@@ -855,6 +858,7 @@ static void print_failure_hints(void)
 	print_failure_hint("linux-stable-git", "missing stable kernel fixes",
 					   LINUX_STABLE_GIT_URL);
 	print_failure_hint("glibc-git", "missing glibc fixes", GLIBC_GIT_URL);
+	print_failure_hint("musl-git", "missing musl fixes", MUSL_GIT_URL);
 	print_failure_hint("CVE", "vulnerable to CVE(s)", CVE_DB_URL);
 	print_failure_hint("known-fail", "hit by known kernel failures", NULL);
 }
@@ -876,8 +880,10 @@ static void do_exit(int ret)
 		if (results->warnings)
 			ret |= TWARN;
 
-		if (results->broken)
+		if (results->broken) {
 			ret |= TBROK;
+			print_failure_hints();
+		}
 
 		fprintf(stderr, "\nSummary:\n");
 		fprintf(stderr, "passed   %d\n", results->passed);
@@ -1163,10 +1169,10 @@ static void do_setup(int argc, char *argv[])
 	if (tst_test->supported_archs && !tst_is_on_arch(tst_test->supported_archs))
 		tst_brk(TCONF, "This arch '%s' is not supported for test!", tst_arch.name);
 
-	if (tst_test->skip_in_lockdown && tst_lockdown_enabled())
+	if (tst_test->skip_in_lockdown && tst_lockdown_enabled() > 0)
 		tst_brk(TCONF, "Kernel is locked down, skipping test");
 
-	if (tst_test->skip_in_secureboot && tst_secureboot_enabled())
+	if (tst_test->skip_in_secureboot && tst_secureboot_enabled() > 0)
 		tst_brk(TCONF, "SecureBoot enabled, skipping test");
 
 	if (tst_test->skip_in_compat && TST_ABI != tst_kernel_bits())

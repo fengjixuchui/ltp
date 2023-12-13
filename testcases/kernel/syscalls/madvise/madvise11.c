@@ -307,9 +307,9 @@ static int open_unpoison_pfn(void)
 		SAFE_CMD(cmd_modprobe, NULL, NULL);
 
 	/* debugfs mount point */
-	mntf = setmntent("/etc/mtab", "r");
+	mntf = setmntent("/proc/mounts", "r");
 	if (!mntf) {
-		tst_brk(TBROK | TERRNO, "Can't open /etc/mtab");
+		tst_brk(TBROK | TERRNO, "Can't open /proc/mounts");
 		return -1;
 	}
 	while ((mnt = getmntent(mntf)) != NULL) {
@@ -325,7 +325,7 @@ static int open_unpoison_pfn(void)
 
 	TEST(open(debugfs_fp, O_WRONLY));
 
-	if (TST_RET == -1 && TST_ERR == EPERM && tst_lockdown_enabled()) {
+	if (TST_RET == -1 && TST_ERR == EPERM && tst_lockdown_enabled() > 0) {
 		tst_res(TINFO,
 			"Cannot restore soft-offlined memory due to lockdown");
 		return TST_RET;
@@ -424,6 +424,10 @@ static struct tst_test test = {
 	.needs_cmds = (const char *[]) {
 		"modprobe",
 		"rmmod",
+		NULL
+	},
+	.needs_kconfigs = (const char *[]) {
+		"CONFIG_MEMORY_FAILURE=y",
 		NULL
 	},
 	.max_runtime = 30,

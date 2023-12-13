@@ -35,6 +35,7 @@ AC_PREFIX_DEFAULT(/opt/ltp)
 
 AC_CHECK_DECLS([IFLA_NET_NS_PID],,,[#include <linux/if_link.h>])
 AC_CHECK_DECLS([MADV_MERGEABLE],,,[#include <sys/mman.h>])
+AC_CHECK_DECLS([NFTA_CHAIN_ID, NFTA_VERDICT_CHAIN_ID],,,[#include <linux/netfilter/nf_tables.h>])
 AC_CHECK_DECLS([PR_CAPBSET_DROP, PR_CAPBSET_READ],,,[#include <sys/prctl.h>])
 AC_CHECK_DECLS([SEM_STAT_ANY],,,[#include <sys/sem.h>])
 
@@ -64,6 +65,7 @@ AC_CHECK_HEADERS_ONCE([ \
     linux/netlink.h \
     linux/seccomp.h \
     linux/securebits.h \
+    linux/tls.h \
     linux/tty.h \
     linux/types.h \
     linux/userfaultfd.h \
@@ -94,7 +96,6 @@ AC_CHECK_FUNCS_ONCE([ \
     execveat \
     faccessat2 \
     fallocate \
-    fchownat \
     fsconfig \
     fsmount \
     fsopen \
@@ -113,8 +114,6 @@ AC_CHECK_FUNCS_ONCE([ \
     mallinfo \
     mallinfo2 \
     mallopt \
-    mkdirat \
-    mknodat \
     modify_ldt \
     mount_setattr \
     move_mount \
@@ -133,9 +132,7 @@ AC_CHECK_FUNCS_ONCE([ \
     pwritev2 \
     quotactl_fd \
     rand_r \
-    readlinkat \
     recvmmsg \
-    renameat \
     renameat2 \
     sched_getcpu \
     sendmmsg \
@@ -386,7 +383,6 @@ LTP_CHECK_FORTIFY_SOURCE
 LTP_CHECK_KERNEL_DEVEL
 LTP_CHECK_KEYUTILS_SUPPORT
 LTP_CHECK_LIBMNL
-LTP_CHECK_LINUX_PTRACE
 LTP_CHECK_LINUXRANDOM
 LTP_CHECK_NOMMU_LINUX
 LTP_CHECK_SELINUX

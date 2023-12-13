@@ -259,6 +259,7 @@ fchmod06 fchmod06
 
 #fchmodat test cases
 fchmodat01 fchmodat01
+fchmodat02 fchmodat02
 
 fchown01 fchown01
 fchown01_16 fchown01_16
@@ -379,12 +380,12 @@ fork01 fork01
 fork03 fork03
 fork04 fork04
 fork05 fork05
-fork06 fork06
+fork06 fork_procs -n 1000
 fork07 fork07
 fork08 fork08
 fork09 fork09
 fork10 fork10
-fork11 fork11
+fork11 fork_procs -n 100
 fork13 fork13
 fork14 fork14
 
@@ -447,8 +448,6 @@ getdents01 getdents01
 getdents02 getdents02
 
 getdomainname01 getdomainname01
-
-getdtablesize01 getdtablesize01
 
 getegid01 getegid01
 getegid01_16 getegid01_16
@@ -538,6 +537,7 @@ getsockopt01 getsockopt01
 getsockopt02 getsockopt02
 
 gettid01 gettid01
+gettid02 gettid02
 
 gettimeofday01 gettimeofday01
 gettimeofday02 gettimeofday02
@@ -693,7 +693,6 @@ lgetxattr02 lgetxattr02
 
 link01 symlink01 -T link01
 link02 link02
-link03 link03
 link04 link04
 link05 link05
 link08 link08
@@ -970,6 +969,7 @@ madvise11 madvise11
 newuname01 newuname01
 
 pathconf01 pathconf01
+pathconf02 pathconf02
 
 pause01 pause01
 pause02 pause02
@@ -1004,6 +1004,7 @@ pipe11 pipe11
 pipe12 pipe12
 pipe13 pipe13
 pipe14 pipe14
+pipe15 pipe15
 
 pipe2_01 pipe2_01
 pipe2_02 pipe2_02
@@ -1073,8 +1074,7 @@ ptrace02 ptrace02
 ptrace03 ptrace03
 ptrace04 ptrace04
 ptrace05 ptrace05
-# Broken test; See: testcases/kernel/syscalls/ptrace/Makefile for more details.
-#ptrace06 ptrace06
+ptrace06 ptrace06
 ptrace07 ptrace07
 ptrace08 ptrace08
 ptrace09 ptrace09
@@ -1227,6 +1227,7 @@ sched_getscheduler02 sched_getscheduler02
 sched_setscheduler01 sched_setscheduler01
 sched_setscheduler02 sched_setscheduler02
 sched_setscheduler03 sched_setscheduler03
+sched_setscheduler04 sched_setscheduler04
 
 sched_yield01 sched_yield01
 
@@ -1424,6 +1425,7 @@ setsockopt06 setsockopt06
 setsockopt07 setsockopt07
 setsockopt08 setsockopt08
 setsockopt09 setsockopt09
+setsockopt10 setsockopt10
 
 settimeofday01 settimeofday01
 settimeofday02 settimeofday02
@@ -1512,6 +1514,7 @@ splice02 splice02
 splice03 splice03
 splice04 splice04
 splice05 splice05
+splice06 splice06
 
 tee01 tee01
 tee02 tee02
@@ -1556,7 +1559,6 @@ symlink01 symlink01
 symlink02 symlink02
 symlink03 symlink03
 symlink04 symlink04
-symlink05 symlink05
 
 #symlinkat test cases
 symlinkat01 symlinkat01
@@ -1603,7 +1605,6 @@ times03 times03
 
 timerfd01 timerfd01
 timerfd02 timerfd02
-timerfd03 timerfd03
 timerfd04 timerfd04
 timerfd_create01 timerfd_create01
 timerfd_gettime01 timerfd_gettime01

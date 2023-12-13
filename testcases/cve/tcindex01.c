@@ -24,7 +24,7 @@
 #include <linux/pkt_sched.h>
 #include <linux/pkt_cls.h>
 #include "tst_test.h"
-#include "tst_rtnetlink.h"
+#include "tst_netlink.h"
 #include "tst_netdevice.h"
 #include "lapi/sched.h"
 #include "lapi/if_ether.h"
@@ -46,15 +46,15 @@ static const struct tc_htb_glob qd_opt = {
 static struct tc_htb_opt cls_opt = {};
 
 /* htb qdisc and class options */
-static const struct tst_rtnl_attr_list qd_config[] = {
-	{TCA_OPTIONS, NULL, 0, (const struct tst_rtnl_attr_list[]){
+static const struct tst_netlink_attr_list qd_config[] = {
+	{TCA_OPTIONS, NULL, 0, (const struct tst_netlink_attr_list[]){
 		{TCA_HTB_INIT, &qd_opt, sizeof(qd_opt), NULL},
 		{0, NULL, -1, NULL}
 	}},
 	{0, NULL, -1, NULL}
 };
-static const struct tst_rtnl_attr_list cls_config[] = {
-	{TCA_OPTIONS, NULL, 0, (const struct tst_rtnl_attr_list[]){
+static const struct tst_netlink_attr_list cls_config[] = {
+	{TCA_OPTIONS, NULL, 0, (const struct tst_netlink_attr_list[]){
 		{TCA_HTB_PARMS, &cls_opt, sizeof(cls_opt), NULL},
 		{0, NULL, -1, NULL}
 	}},
@@ -62,8 +62,8 @@ static const struct tst_rtnl_attr_list cls_config[] = {
 };
 
 /* tcindex filter options */
-static const struct tst_rtnl_attr_list f_config[] = {
-	{TCA_OPTIONS, NULL, 0, (const struct tst_rtnl_attr_list[]){
+static const struct tst_netlink_attr_list f_config[] = {
+	{TCA_OPTIONS, NULL, 0, (const struct tst_netlink_attr_list[]){
 		{TCA_TCINDEX_MASK, &mask, sizeof(mask), NULL},
 		{TCA_TCINDEX_SHIFT, &shift, sizeof(shift), NULL},
 		{TCA_TCINDEX_CLASSID, &clsid, sizeof(clsid), NULL},
@@ -84,31 +84,26 @@ static void setup(void)
 
 static void run(void)
 {
-	unsigned int i;
+	int ret;
 
-	for (i = 0; i < 100; i++) {
-		NETDEV_ADD_QDISC(DEVNAME, AF_UNSPEC, TC_H_ROOT, qd_handle,
-			"htb", qd_config);
-		NETDEV_ADD_TRAFFIC_CLASS(DEVNAME, qd_handle, clsid, "htb",
-			cls_config);
-		NETDEV_ADD_TRAFFIC_FILTER(DEVNAME, qd_handle, 10, ETH_P_IP, 1,
-			"tcindex", f_config);
-		NETDEV_REMOVE_TRAFFIC_FILTER(DEVNAME, qd_handle, 10, ETH_P_IP,
-			1, "tcindex");
+	NETDEV_ADD_QDISC(DEVNAME, AF_UNSPEC, TC_H_ROOT, qd_handle, "htb",
+		qd_config);
+	NETDEV_ADD_TRAFFIC_CLASS(DEVNAME, qd_handle, clsid, "htb", cls_config);
+	NETDEV_ADD_TRAFFIC_FILTER(DEVNAME, qd_handle, 10, ETH_P_IP, 1,
+		"tcindex", f_config);
+	NETDEV_REMOVE_TRAFFIC_FILTER(DEVNAME, qd_handle, 10, ETH_P_IP,
+		1, "tcindex");
+	ret = tst_netdev_add_traffic_filter(__FILE__, __LINE__, 0, DEVNAME,
+		qd_handle, 10, ETH_P_IP, 1, "tcindex", f_config);
+	TST_ERR = tst_netlink_errno;
+	NETDEV_REMOVE_QDISC(DEVNAME, AF_UNSPEC, TC_H_ROOT, qd_handle, "htb");
 
-		/* Wait at least one jiffy for use-after-free */
-		usleep(10000);
-
-		NETDEV_REMOVE_QDISC(DEVNAME, AF_UNSPEC, TC_H_ROOT, qd_handle,
-			"htb");
-	}
-
-	if (tst_taint_check()) {
-		tst_res(TFAIL, "Kernel is vulnerable");
-		return;
-	}
-
-	tst_res(TPASS, "Nothing bad happened (yet)");
+	if (ret)
+		tst_res(TPASS, "Removing tcindex filter works correctly");
+	else if (TST_ERR == EEXIST)
+		tst_res(TFAIL, "Kernel traffic filter list is corrupted");
+	else
+		tst_brk(TBROK | TTERRNO, "Unexpected rtnetlink error");
 }
 
 static void cleanup(void)
@@ -132,6 +127,10 @@ static struct tst_test test = {
 	.save_restore = (const struct tst_path_val[]) {
 		{"/proc/sys/user/max_user_namespaces", "1024", TST_SR_SKIP},
 		{}
+	},
+	.needs_drivers = (const char *const []) {
+		"dummy",
+		NULL
 	},
 	.tags = (const struct tst_tag[]) {
 		{"linux-git", "8c710f75256b"},
