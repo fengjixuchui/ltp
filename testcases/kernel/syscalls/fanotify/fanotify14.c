@@ -1,4 +1,4 @@
-// SPDX-License-Identifier: GPL-2.0
+// SPDX-License-Identifier: GPL-2.0-or-later
 /*
  * Copyright (c) 2018 Matthew Bobrowski. All Rights Reserved.
  * Copyright (c) Linux Test Project, 2020-2022
@@ -46,6 +46,8 @@
 static int pipes[2] = {-1, -1};
 static int fanotify_fd;
 static int ignore_mark_unsupported;
+static int filesystem_mark_unsupported;
+static int se_enforcing;
 static unsigned int supported_init_flags;
 
 struct test_case_flags_t {
@@ -273,6 +275,7 @@ static void do_test(unsigned int number)
 
 	/* Set mark on non-dir only when expecting error ENOTDIR */
 	const char *path = tc->expected_errno == ENOTDIR ? FILE1 : MNTPOINT;
+	const int exp_errs[] = {tc->expected_errno, EACCES};
 	int dirfd = AT_FDCWD;
 
 	if (tc->pfd) {
@@ -282,9 +285,9 @@ static void do_test(unsigned int number)
 
 	tst_res(TINFO, "Testing %s with %s",
 		tc->mark.desc, tc->mask.desc);
-	TST_EXP_FD_OR_FAIL(fanotify_mark(fanotify_fd, FAN_MARK_ADD | tc->mark.flags,
-					 tc->mask.flags, dirfd, path),
-					 tc->expected_errno);
+
+	TST_EXP_FAIL_ARR(fanotify_mark(fanotify_fd, FAN_MARK_ADD | tc->mark.flags,
+			 tc->mask.flags, dirfd, path), exp_errs, se_enforcing ? 2 : 1);
 
 	/*
 	 * ENOTDIR are errors for events/flags not allowed on a non-dir inode.
@@ -299,7 +302,7 @@ static void do_test(unsigned int number)
 			"Adding an inode mark on directory did not fail with "
 			"ENOTDIR error as on non-dir inode");
 
-		if (!(tc->mark.flags & FAN_MARK_ONLYDIR)) {
+		if (!(tc->mark.flags & FAN_MARK_ONLYDIR) && !filesystem_mark_unsupported) {
 			SAFE_FANOTIFY_MARK(fanotify_fd, FAN_MARK_ADD | tc->mark.flags |
 					   FAN_MARK_FILESYSTEM, tc->mask.flags,
 					   AT_FDCWD, FILE1);
@@ -321,17 +324,20 @@ static void do_setup(void)
 
 	/* Require FAN_REPORT_FID support for all tests to simplify per test case requirements */
 	REQUIRE_FANOTIFY_INIT_FLAGS_SUPPORTED_ON_FS(FAN_REPORT_FID, MNTPOINT);
-
-	supported_init_flags = fanotify_get_supported_init_flags(all_init_flags,
-		MNTPOINT);
+	supported_init_flags = fanotify_get_supported_init_flags(all_init_flags, MNTPOINT);
 
 	ignore_mark_unsupported = fanotify_mark_supported_on_fs(FAN_MARK_IGNORE_SURV,
 								MNTPOINT);
+	filesystem_mark_unsupported =
+		fanotify_flags_supported_on_fs(FAN_REPORT_FID, FAN_MARK_FILESYSTEM, FAN_OPEN,
+						MNTPOINT);
 
 	/* Create temporary test file to place marks on */
 	SAFE_FILE_PRINTF(FILE1, "0");
 	/* Create anonymous pipes to place marks on */
 	SAFE_PIPE2(pipes, O_CLOEXEC);
+
+	se_enforcing = tst_selinux_enforcing();
 }
 
 static void do_cleanup(void)

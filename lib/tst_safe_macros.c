@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 /*
  * Copyright (c) 2017 Cyril Hrubis <chrubis@suse.cz>
+ * Copyright (c) 2017-2024 Linux Test Project
  */
 
 #define _GNU_SOURCE
@@ -225,8 +226,8 @@ int safe_setresuid(const char *file, const int lineno,
 }
 
 int safe_sigaction(const char *file, const int lineno,
-                   int signum, const struct sigaction *act,
-                   struct sigaction *oldact)
+				   int signum, const struct sigaction *act,
+				   struct sigaction *oldact)
 {
 	int rval;
 
@@ -246,7 +247,7 @@ int safe_sigaction(const char *file, const int lineno,
 }
 
 int safe_sigaddset(const char *file, const int lineno,
-                    sigset_t *sigs, int signo)
+				   sigset_t *sigs, int signo)
 {
 	int rval;
 
@@ -265,8 +266,7 @@ int safe_sigaddset(const char *file, const int lineno,
 	return rval;
 }
 
-int safe_sigdelset(const char *file, const int lineno,
-                    sigset_t *sigs, int signo)
+int safe_sigdelset(const char *file, const int lineno, sigset_t *sigs, int signo)
 {
 	int rval;
 
@@ -285,8 +285,7 @@ int safe_sigdelset(const char *file, const int lineno,
 	return rval;
 }
 
-int safe_sigemptyset(const char *file, const int lineno,
-                      sigset_t *sigs)
+int safe_sigemptyset(const char *file, const int lineno, sigset_t *sigs)
 {
 	int rval;
 
@@ -334,7 +333,7 @@ static const char *strhow(int how)
 }
 
 int safe_sigprocmask(const char *file, const int lineno,
-                      int how, sigset_t *set, sigset_t *oldset)
+					 int how, sigset_t *set, sigset_t *oldset)
 {
 	int rval;
 
@@ -353,8 +352,7 @@ int safe_sigprocmask(const char *file, const int lineno,
 	return rval;
 }
 
-int safe_sigwait(const char *file, const int lineno,
-                  sigset_t *set, int *sig)
+int safe_sigwait(const char *file, const int lineno, sigset_t *set, int *sig)
 {
 	int rval;
 
@@ -606,6 +604,94 @@ int safe_msync(const char *file, const int lineno, void *addr,
 		tst_brk_(file, lineno, TBROK | TERRNO,
 			"Invalid msync(%p, %zu, %d) return value %d",
 			addr, length, flags, rval);
+	}
+
+	return rval;
+}
+
+void safe_print_file(const char *file, const int lineno, char *path)
+{
+	FILE *pfile;
+	char line[PATH_MAX];
+
+	tst_res(TINFO, "=== %s ===", path);
+
+	pfile = safe_fopen(file, lineno, NULL, path, "r");
+
+	while (fgets(line, sizeof(line), pfile))
+		fprintf(stderr, "%s", line);
+
+	safe_fclose(file, lineno, NULL, pfile);
+}
+
+int safe_sscanf(const char *file, const int lineno, const char *restrict buffer, const char *restrict format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	int ret = vsscanf(buffer, format, args);
+
+	va_end(args);
+	int placeholders = tst_count_scanf_conversions(format);
+
+	if (ret == EOF)
+		tst_brk_(file, lineno, TBROK | TERRNO, "got EOF from sscanf()");
+
+	if (ret != placeholders)
+		tst_brk_(file, lineno, TBROK | TERRNO, "wrong number of conversion, expected %d, got %d", placeholders, ret);
+
+	return ret;
+}
+
+#define PROT_FLAG_STR(f) #f " | "
+void tst_prot_to_str(const int prot, char *buf)
+{
+	char *ptr = buf;
+
+	if (prot == PROT_NONE) {
+		strcpy(buf, "PROT_NONE");
+		return;
+	}
+
+	if (prot & PROT_READ) {
+		strcpy(ptr, PROT_FLAG_STR(PROT_READ));
+		ptr += sizeof(PROT_FLAG_STR(PROT_READ)) - 1;
+	}
+
+	if (prot & PROT_WRITE) {
+		strcpy(ptr, PROT_FLAG_STR(PROT_WRITE));
+		ptr += sizeof(PROT_FLAG_STR(PROT_WRITE)) - 1;
+	}
+
+	if (prot & PROT_EXEC) {
+		strcpy(ptr, PROT_FLAG_STR(PROT_EXEC));
+		ptr += sizeof(PROT_FLAG_STR(PROT_EXEC)) - 1;
+	}
+
+	if (buf != ptr)
+		ptr[-3] = 0;
+}
+
+int safe_mprotect(const char *file, const int lineno,
+	char *addr, size_t len, int prot)
+{
+	int rval;
+	char prot_buf[512];
+
+	tst_prot_to_str(prot, prot_buf);
+
+	tst_res_(file, lineno, TDEBUG,
+		"mprotect(%p, %ld, %s(%x))", addr, len, prot_buf, prot);
+
+	rval = mprotect(addr, len, prot);
+
+	if (rval == -1) {
+		tst_brk_(file, lineno, TBROK | TERRNO,
+			"mprotect(%p, %ld, %s(%x))", addr, len, prot_buf, prot);
+	} else if (rval) {
+		tst_brk_(file, lineno, TBROK | TERRNO,
+			"mprotect(%p, %ld, %s(%x)) return value %d",
+			addr, len, prot_buf, prot, rval);
 	}
 
 	return rval;

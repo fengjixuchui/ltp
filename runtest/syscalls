@@ -3,6 +3,7 @@ abort01 abort01
 
 accept01 accept01
 accept02 accept02
+accept03 accept03
 
 accept4_01 accept4_01
 
@@ -328,8 +329,6 @@ fcntl26 fcntl26
 fcntl26_64 fcntl26_64
 fcntl27 fcntl27
 fcntl27_64 fcntl27_64
-fcntl28 fcntl28
-fcntl28_64 fcntl28_64
 fcntl29 fcntl29
 fcntl29_64 fcntl29_64
 fcntl30 fcntl30
@@ -557,7 +556,7 @@ init_module01 init_module01
 init_module02 init_module02
 
 #Needs tty device.
-#ioctl02 ioctl02 -D /dev/tty0
+#ioctl02 ioctl02 -d /dev/tty0
 
 # Introducing ioctl tests for all /dev/tty* devices
 ioctl01      ioctl01
@@ -756,7 +755,6 @@ mkdir02 mkdir02
 mkdir03 mkdir03
 mkdir04 mkdir04
 mkdir05 mkdir05
-mkdir05A symlink01 -T mkdir05
 mkdir09 mkdir09
 
 #mkdirat test cases
@@ -1444,6 +1442,7 @@ setxattr03 setxattr03
 shmat01 shmat01
 shmat02 shmat02
 shmat03 shmat03
+shmat04 shmat04
 
 shmctl01 shmctl01
 shmctl02 shmctl02
@@ -1515,6 +1514,7 @@ splice03 splice03
 splice04 splice04
 splice05 splice05
 splice06 splice06
+splice07 splice07
 
 tee01 tee01
 tee02 tee02
@@ -1706,10 +1706,8 @@ wait402 wait402
 wait403 wait403
 
 waitpid01 waitpid01
-waitpid02 waitpid02
 waitpid03 waitpid03
 waitpid04 waitpid04
-waitpid05 waitpid05
 waitpid06 waitpid06
 waitpid07 waitpid07
 waitpid08 waitpid08

@@ -1,3 +1,4 @@
+cn_pec_sh cn_pec.sh
 kmsg01 kmsg01
 fw_load fw_load
 rtc01 rtc01
@@ -14,3 +15,4 @@ zram01 zram01.sh
 zram02 zram02.sh
 zram03 zram03
 umip_basic_test umip_basic_test
+aslr01 aslr01

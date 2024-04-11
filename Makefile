@@ -1,5 +1,5 @@
 # SPDX-License-Identifier: GPL-2.0-or-later
-# Copyright (c) Linux Test Project, 2009-2022
+# Copyright (c) Linux Test Project, 2009-2024
 # Copyright (c) Cisco Systems Inc., 2009-2010
 # Ngie Cooper, July 2009
 
@@ -13,7 +13,6 @@ top_srcdir		?= $(CURDIR)
 
 include $(top_srcdir)/include/mk/env_pre.mk
 include $(top_srcdir)/include/mk/automake.mk
-include $(top_srcdir)/include/mk/gitignore.mk
 
 .SUFFIXES:
 .SUFFIXES: .am .default .h .in .m4 .mk
@@ -39,7 +38,6 @@ export UCLINUX
 # We're not using uclinux based targets (default).
 ifneq ($(UCLINUX),1)
 COMMON_TARGETS		:= pan utils
-INSTALL_TARGETS		:= doc
 endif
 
 define target_to_dir_dep_mapping
@@ -178,6 +176,9 @@ INSTALL_TARGETS		+= $(addprefix $(DESTDIR)/$(bindir)/,$(BINDIR_INSTALL_SCRIPTS))
 
 $(INSTALL_TARGETS): $(INSTALL_DIR) $(DESTDIR)/$(bindir)
 
+.PHONY: doc
+doc: metadata-all
+
 .PHONY: check
 check: $(CHECK_TARGETS)
 
@@ -209,7 +210,7 @@ endif
 	$(call _test,-s)
 
 test-metadata: metadata-all
-	$(MAKE) -C $(abs_srcdir)/metadata/ test
+	$(MAKE) -C $(abs_srcdir)/metadata test
 
 ## Help
 .PHONY: help

@@ -60,6 +60,7 @@ static pid_t main_pid, lib_pid;
 static int mntpoint_mounted;
 static int ovl_mounted;
 static struct timespec tst_start_time; /* valid only for test pid */
+static int tdebug;
 
 struct results {
 	int passed;
@@ -224,6 +225,9 @@ static void print_result(const char *file, const int lineno, int ttype,
 	case TINFO:
 		res = "TINFO";
 	break;
+	case TDEBUG:
+		res = "TDEBUG";
+	break;
 	default:
 		tst_brk(TBROK, "Invalid ttype value %i", ttype);
 		abort();
@@ -351,6 +355,9 @@ void tst_res_(const char *file, const int lineno, int ttype,
 	      const char *fmt, ...)
 {
 	va_list va;
+
+	if (ttype == TDEBUG && !tdebug)
+		return;
 
 	va_start(va, fmt);
 	tst_vres_(file, lineno, ttype, fmt, va);
@@ -511,6 +518,7 @@ static struct option {
 	{"h",  "-h       Prints this help"},
 	{"i:", "-i n     Execute test n times"},
 	{"I:", "-I x     Execute test for n seconds"},
+	{"D",  "-D       Prints debug information"},
 	{"V",  "-V       Prints LTP version"},
 	{"C:", "-C ARG   Run child process with ARG arguments (used internally)"},
 };
@@ -678,6 +686,10 @@ static void parse_opts(int argc, char *argv[])
 		case '?':
 			print_help();
 			tst_brk(TBROK, "Invalid option");
+		break;
+		case 'D':
+			tst_res(TINFO, "Enabling debug info");
+			tdebug = 1;
 		break;
 		case 'h':
 			print_help();
@@ -1135,8 +1147,33 @@ static void do_cgroup_requires(void)
 	tst_cg_init();
 }
 
+#define tst_set_ulimit(conf) \
+	set_ulimit_(__FILE__, __LINE__, (conf))
+
+/*
+ * Set resource limits.
+ */
+static void set_ulimit_(const char *file, const int lineno, const struct tst_ulimit_val *conf)
+{
+	struct rlimit rlim;
+
+	safe_getrlimit(file, lineno, conf->resource, &rlim);
+
+	rlim.rlim_cur = conf->rlim_cur;
+
+	if (conf->rlim_cur > rlim.rlim_max)
+		rlim.rlim_max = conf->rlim_cur;
+
+	tst_res_(file, lineno, TINFO, "Set ulimit resource: %d rlim_cur: %lu rlim_max: %lu",
+		conf->resource, rlim.rlim_cur, rlim.rlim_max);
+
+	safe_setrlimit(file, lineno, conf->resource, &rlim);
+}
+
 static void do_setup(int argc, char *argv[])
 {
+	char *tdebug_env = getenv("LTP_ENABLE_DEBUG");
+
 	if (!tst_test)
 		tst_brk(TBROK, "No tests to run");
 
@@ -1157,6 +1194,11 @@ static void do_setup(int argc, char *argv[])
 
 	parse_opts(argc, argv);
 
+	if (tdebug_env && (!strcmp(tdebug_env, "1") || !strcmp(tdebug_env, "y"))) {
+		tst_res(TINFO, "Enabling debug info");
+		tdebug = 1;
+	}
+
 	if (tst_test->needs_kconfigs && tst_kconfig_check(tst_test->needs_kconfigs))
 		tst_brk(TCONF, "Aborting due to unsuitable kernel config, see above!");
 
@@ -1175,7 +1217,7 @@ static void do_setup(int argc, char *argv[])
 	if (tst_test->skip_in_secureboot && tst_secureboot_enabled() > 0)
 		tst_brk(TCONF, "SecureBoot enabled, skipping test");
 
-	if (tst_test->skip_in_compat && TST_ABI != tst_kernel_bits())
+	if (tst_test->skip_in_compat && tst_is_compat_mode())
 		tst_brk(TCONF, "Not supported in 32-bit compat mode");
 
 	if (tst_test->needs_cmds) {
@@ -1229,6 +1271,15 @@ static void do_setup(int argc, char *argv[])
 
 		while (pvl->path) {
 			tst_sys_conf_save(pvl);
+			pvl++;
+		}
+	}
+
+	if (tst_test->ulimit) {
+		const struct tst_ulimit_val *pvl = tst_test->ulimit;
+
+		while (pvl->resource) {
+			tst_set_ulimit(pvl);
 			pvl++;
 		}
 	}

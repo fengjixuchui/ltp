@@ -34,6 +34,11 @@
 #define TST_VFAT_MAGIC     0x4d44 /* AKA MSDOS */
 #define TST_EXFAT_MAGIC    0x2011BAB0UL
 
+/* fs/bcachefs/bcachefs_format.h */
+#define TST_BCACHE_MAGIC		0xca451a4e
+
+#include <stdint.h>
+
 enum tst_fill_access_pattern {
 	TST_FILL_BLOCKS,
 	TST_FILL_RANDOM
@@ -57,7 +62,7 @@ enum {
  * @mult: mult should be TST_KB, TST_MB or TST_GB
  * the required free space is calculated by @size * @mult
  */
-int tst_fs_has_free_(void (*cleanup)(void), const char *path, unsigned int size,
+int tst_fs_has_free_(void (*cleanup)(void), const char *path, uint64_t size,
 		     unsigned int mult);
 
 /*
@@ -209,7 +214,10 @@ int tst_fs_in_skiplist(const char *fs_type, const char *const *skiplist);
 void tst_fill_fs(const char *path, int verbose, enum tst_fill_access_pattern pattern);
 
 /*
- * test if FIBMAP ioctl is supported
+ * Check if FIBMAP ioctl is supported.
+ * Tests needs to set .needs_root = 1 in order to avoid EPERM.
+ *
+ * @return 0: FIBMAP is supported, 1: FIBMAP is *not* supported.
  */
 int tst_fibmap(const char *filename);
 
@@ -219,7 +227,7 @@ static inline long tst_fs_type(const char *path)
 	return tst_fs_type_(NULL, path);
 }
 
-static inline int tst_fs_has_free(const char *path, unsigned int size,
+static inline int tst_fs_has_free(const char *path, uint64_t size,
 				  unsigned int mult)
 {
 	return tst_fs_has_free_(NULL, path, size, mult);
@@ -246,7 +254,7 @@ static inline long tst_fs_type(void (*cleanup)(void), const char *path)
 }
 
 static inline int tst_fs_has_free(void (*cleanup)(void), const char *path,
-				  unsigned int size, unsigned int mult)
+				  uint64_t size, unsigned int mult)
 {
 	return tst_fs_has_free_(cleanup, path, size, mult);
 }
